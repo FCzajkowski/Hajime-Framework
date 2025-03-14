@@ -2,12 +2,16 @@ from setuptools import setup, find_packages
 
 setup(
     name="Hajime",
-    version="1.0",
+    version="2.0.0",
     packages=find_packages(),
-    install_requires=['sqlalchemy-2.0.38'],  # Add dependencies here
+    install_requires=['sqlalchemy', 'termcolor', 'websockets'],
     author="Franciszek Czajkowski",
-    description="Lightweight Website Framework",
-    url="https://github.com/yourusername/my_library",
+    description="Amazing Website Framework",
+    url="https://Hajime.pythonanywhere.com",
+    project_urls={
+        "Source": "https://github.com/FCzajkowski/Hajime",
+        "Documentation": "https://Hajime.pythonanywhere.com/Documentation"
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

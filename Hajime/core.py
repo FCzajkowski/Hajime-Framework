@@ -2,9 +2,46 @@ from urllib.parse import parse_qs
 import json, uuid, mimetypes, os
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.orm import sessionmaker
-from utils import Messages
-from jsons import *
 
+
+def find_free_port(start_port: int = 8000) -> int:
+    import socket
+    """Find the next available port starting from start_port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        while True:
+            if s.connect_ex(('localhost', start_port)) != 0:
+                return start_port
+            start_port += 1
+class Messages:
+    def __init__(self):
+        self.green = '\033[92m'
+        self.red = '\033[91m'
+        self.end = '\033[0m'
+
+    def message(self, status: int = 200, message: object = ""):
+        color = self.green if 200 <= status < 300 else self.red if 400 <= status < 500 else self.end
+        print(f"[{color} {status} {self.end}] {message}")
+
+
+def json_response(data, status=200):
+    """Return a JSON response"""
+    response_body = json.dumps(data)
+    headers = [('Content-Type', 'application/json')]
+
+    # Check if the body is already in bytes, if so, don't encode it again.
+    if isinstance(response_body, str):
+        response_body = response_body.encode()
+
+    return status, headers, response_body
+
+def get_json(environ):
+    try:
+        length = int(environ.get('CONTENT_LENGTH', 0))
+        body = environ['wsgi.input'].read(length)
+        return json.loads(body)
+    except:
+        return None
 
 class Database:
     def __init__(self, db_type, host, user, password, database, port=None):
@@ -58,20 +95,58 @@ class Database:
             self.engine.dispose()
 
 
-class We6:
-    def __init__(self, database=None):
+class Hajime:
+    def __init__(self, database = None):
         self.routes = {}
         self.error_handlers = {}
         self.template_folder = "templates"
         self.static_folder = "static"
         self.middlewares = []
         self.sessions = {}
+        self.ws_routes = {}
         if database != None:
             self.database = database
+    def websocket(self, path):
+        """Decorator to register WebSocket routes"""
+        def wrapper(func):
+            self.ws_routes[path] = func
+            return func
+        return wrapper
 
-    def db_panel(self, enable):
-        if enable:
-            self.routes["/admin-panel"] = self._db_panel_handler
+    async def ws_handler(self, websocket, path):
+        """Handle WebSocket connections"""
+        if path in self.ws_routes:
+            await self.ws_routes[path](websocket)
+        else:
+            await websocket.send("404 Not Found")
+            await websocket.close()
+
+    def run_ws_server(self, port=8765):
+        import asyncio, websockets
+        """Start the WebSocket server inside a new event loop"""
+        async def server_task():
+            async with websockets.serve(self.ws_handler, "localhost", port):
+                await asyncio.Future()  # Keeps the server running
+
+        asyncio.run(server_task())  # Use asyncio.run() to manage the event loop
+
+    def launch(self, port=8000, ws_port=8765):
+        """Launch both WSGI and WebSocket servers"""
+        from threading import Thread
+        from wsgiref.simple_server import make_server
+
+        # Find an available port for HTTP server
+        free_port = find_free_port(port)
+
+        # Start WebSocket server in a separate thread
+        ws_thread = Thread(target=self.run_ws_server, args=(ws_port,))
+        ws_thread.daemon = True
+        ws_thread.start()
+
+        server = make_server('localhost', free_port, self)
+        print(f"HTTP server running at http://localhost:{free_port}")
+        print(f"WebSocket server running at ws://localhost:{ws_port}")
+        server.serve_forever()
 
     def _db_panel_handler(self, params):
         if self.database == None:
@@ -95,7 +170,6 @@ class We6:
         def wrapper(func):
             self.error_handlers[status_code] = func
             return func
-
         return wrapper
 
     def use(self, middleware_func):
@@ -111,8 +185,13 @@ class We6:
 
     def template(self, filename, **context):
         """Loads an HTML file and replaces {{ variables }} with values"""
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        filepath = os.path.join(base_path, self.template_folder, filename)
+        # Get the current working directory (project directory)
+        project_dir = os.getcwd()
+
+        # Look for templates in the project's template folder
+        filepath = os.path.join(project_dir, self.template_folder, filename)
+
+        print(f"Looking for template at: {filepath}")  # Debugging line
 
         if not os.path.exists(filepath):
             return "Template not found!"
@@ -124,13 +203,6 @@ class We6:
             template = template.replace(f"{{{{{key}}}}}", str(value))
 
         return template
-
-    def launch(self, port: int = 8000):
-        from wsgiref.simple_server import make_server
-        server = make_server('localhost', port, self)
-        msg = Messages()
-        msg.message(200, f"Server running at http://localhost:{port}")
-        server.serve_forever()
 
     def get_session(self, environ):
         """Fetches or creates a session for the user"""
@@ -166,25 +238,35 @@ class We6:
         for middleware in self.middlewares:
             response = middleware(environ, params)
             if response:
-                start_response(response[0], [('Content-Type', 'text/html')])
-                return [response[1].encode()]
+                start_response("401 Unauthorized", [('Content-Type', 'text/html')])
+                return [response.encode()]
 
         method = environ['REQUEST_METHOD']
         if path in self.routes:
             route_info = self.routes[path]
             if method in route_info["methods"]:
                 response_body = route_info["func"](environ)
+
+                # Handle JSON response properly
+                if isinstance(response_body, tuple):  # JSON response case
+                    status, headers, body = response_body
+                    start_response(f"{status} OK", headers + [('Set-Cookie', f'session_id={session_id}')])
+
+                    # Ensure response_body is bytes
+                    return [body] if isinstance(body, bytes) else [body.encode()]
+
+                # Default to HTML response
+                start_response("200 OK", [('Content-Type', 'text/html'), ('Set-Cookie', f'session_id={session_id}')])
+                return [response_body.encode()]
+
             else:
                 response_body = self.error_handlers.get(405, lambda: "405 Method Not Allowed")()
-                status = "405 Method Not Allowed"
+                start_response("405 Method Not Allowed", [('Content-Type', 'text/html')])
+                return [response_body.encode()]
         else:
             response_body = self.error_handlers.get(404, lambda: "404 Not Found")()
-            status = "404 Not Found"
-
-        headers = [('Content-Type', 'text/html'), ('Set-Cookie', f'session_id={session_id}')]
-
-        start_response(status, headers)
-        return [response_body.encode()]
+            start_response("404 Not Found", [('Content-Type', 'text/html')])
+            return [response_body.encode()]
 
     def auth_middleware(environ, params):
         session = environ.get("SESSION", {})
@@ -194,8 +276,15 @@ class We6:
 
     def serve_static(self, path, start_response):
         """Serve static files from the static/ directory"""
-        file_path = os.path.join(os.getcwd(), path.lstrip("/"))
+        # Get the current working directory (project directory)
+        project_dir = os.getcwd()
+
+        # Strip the '/static/' prefix and join with project directory and static folder
+        relative_path = path.replace('/static/', '', 1)
+        file_path = os.path.join(project_dir, self.static_folder, relative_path)
+
         print(f"Serving static file: {file_path}")
+
         if os.path.exists(file_path):
             mime_type, _ = mimetypes.guess_type(file_path)
             with open(file_path, "rb") as f:

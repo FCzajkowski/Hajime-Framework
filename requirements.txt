@@ -1,1 +1,3 @@
-sqlalchemy == 2.0.38
+sqlalchemy
+termcolor
+websockets
