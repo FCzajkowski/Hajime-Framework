@@ -1,4 +1,4 @@
-# Hajime 🚀
+![Hajime 🚀](HAJIME/header.png)
 
 ## Overview
 Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, and database interaction. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
@@ -141,5 +141,4 @@ def not_found():
     return "Custom 404 Page Not Found"
 ```
 
-## Conclusion
-Hajime is a simple yet powerful web framework for building web applications and real-time systems. With features like WebSockets, middleware, and database support, it is ideal for small to medium projects.
+![Hajime 🚀](HAJIME/footer.png)
