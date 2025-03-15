@@ -1,5 +1,7 @@
 ![Hajime 🚀](HAJIME/header.png)
-
+```python
+pip install Hajime==2.0.0
+```
 ## Overview
 Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, and database interaction. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
 
@@ -11,12 +13,6 @@ Hajime is a lightweight Python-based web framework that provides built-in suppor
 - **Database Integration**: Works with SQLite and PostgreSQL databases.
 - **Static File Serving**: Serves files from a static directory.
 - **Session Management**: Basic session handling with cookies.
-
-## Installation
-Hajime does not require external dependencies other than SQLAlchemy for database support. Install the necessary dependencies:
-```sh
-pip install sqlalchemy psycopg2-binary websockets
-```
 
 ## Quick Start
 Create a simple web server with Hajime:
@@ -34,7 +30,7 @@ if __name__ == "__main__":
     app.launch()
 ```
 
-Run the script, and the server will start at an available port.
+Run the script, and the server will start at an available port. (Basic for Hajime is 8000)
 
 ## Routing
 Hajime provides an easy way to define routes with the `@app.route` decorator.
