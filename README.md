@@ -22,7 +22,7 @@ pip install sqlalchemy psycopg2-binary websockets
 Create a simple web server with Hajime:
 
 ```python
-from hajime import Hajime
+from Hajime import *
 
 app = Hajime()
 
@@ -94,7 +94,7 @@ def greet(environ):
 Hajime includes a `Database` class to interact with PostgreSQL and SQLite.
 
 ```python
-from hajime import Database
+from Hajime import Database
 
 db = Database("sqlite", database="data.db")
 
