@@ -1,6 +1,6 @@
 ![Hajime 🚀](HAJIME/header.png)
 ```python
-pip install Hajime==2.0.0
+pip install Hajime==2.0.2
 ```
 ## Overview
 Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, and database interaction. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
