@@ -1,8 +1,7 @@
 from urllib.parse import parse_qs
-import json, uuid, mimetypes, os
+import json, uuid, mimetypes, os, re
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.orm import sessionmaker
-
 
 def find_free_port(start_port: int = 8000) -> int:
     import socket
@@ -104,8 +103,20 @@ class Hajime:
         self.middlewares = []
         self.sessions = {}
         self.ws_routes = {}
-        if database != None:
+        self.templates_cache = {}  # 🔥 Store preloaded templates
+        if database:
             self.database = database
+        self.preload_templates()
+    def preload_templates(self):
+        """Preloads all HTML templates into memory."""
+        templates_dir = os.path.join(os.getcwd(), self.template_folder)
+        if os.path.exists(templates_dir):
+            for file in os.listdir(templates_dir):
+                if file.endswith(".html"):
+                    filepath = os.path.join(templates_dir, file)
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        self.templates_cache[file] = f.read()  # Store in memory
+        print("🔥 All templates preloaded!")
     def websocket(self, path):
         """Decorator to register WebSocket routes"""
         def wrapper(func):
@@ -184,13 +195,14 @@ class Hajime:
         return wrapper
 
     def template(self, filename, **context):
-        """Loads an HTML file and replaces {{ variables }} with values"""
-        # Get the current working directory (project directory)
+        """Loads an HTML file and processes simple templating constructs.
+        Supports variable replacement and simple for-loops in the form:
+            {% for key, value in dictname.items() %}
+              ... use {{ key }} and {{ value }} ...
+            {% endfor %}
+        """
         project_dir = os.getcwd()
-
-        # Look for templates in the project's template folder
         filepath = os.path.join(project_dir, self.template_folder, filename)
-
         print(f"Looking for template at: {filepath}")  # Debugging line
 
         if not os.path.exists(filepath):
@@ -199,10 +211,43 @@ class Hajime:
         with open(filepath, "r", encoding="utf-8") as file:
             template = file.read()
 
+        # Process simple for-loop blocks
+        loop_pattern = r'{%\s*for\s+(\w+)\s*,\s*(\w+)\s+in\s+(\w+)\.items\(\)\s*%}(.*?){%\s*endfor\s*%}'
+
+        def loop_replacer(match):
+            iter_var1 = match.group(1)
+            iter_var2 = match.group(2)
+            dict_name = match.group(3)
+            block = match.group(4)
+            output = ""
+            dictionary = context.get(dict_name, {})
+            for key, value in dictionary.items():
+                iter_block = block
+                # Replace both with and without spaces inside curly braces.
+                iter_block = re.sub(r'{{\s*' + iter_var1 + r'\s*}}', str(key), iter_block)
+                iter_block = re.sub(r'{{\s*' + iter_var2 + r'\s*}}', str(value), iter_block)
+                output += iter_block
+            return output
+
+        """Render templates from cache instantly"""
+        template = self.templates_cache.get(filename)
+        if not template:
+            return "Template not found!"
         for key, value in context.items():
             template = template.replace(f"{{{{{key}}}}}", str(value))
-
         return template
+
+    def preload_static_files(self):
+        """Preloads all static assets into memory."""
+        self.static_cache = {}
+        static_dir = os.path.join(os.getcwd(), self.static_folder)
+        if os.path.exists(static_dir):
+            for root, _, files in os.walk(static_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    with open(file_path, "rb") as f:
+                        self.static_cache[file_path] = f.read()
+        print("📦 All static assets preloaded!")
 
     def get_session(self, environ):
         """Fetches or creates a session for the user"""
@@ -221,7 +266,18 @@ class Hajime:
     def set_session(self, session_id, data):
         """Updates session data"""
         self.sessions[session_id] = data
+    def serve_static(self, path, start_response):
+        """Serve static files instantly from cache."""
+        relative_path = path.replace('/static/', '', 1)
+        file_path = os.path.join(os.getcwd(), self.static_folder, relative_path)
 
+        if file_path in self.static_cache:
+            mime_type, _ = mimetypes.guess_type(file_path)
+            start_response("200 OK", [('Content-Type', mime_type or 'application/octet-stream')])
+            return [self.static_cache[file_path]]
+        else:
+            start_response("404 Not Found", [('Content-Type', 'text/plain')])
+            return [b"404 Not Found"]
     def __call__(self, environ, start_response):
         path = environ['PATH_INFO']
         environ["json"] = get_json(environ)
@@ -239,34 +295,83 @@ class Hajime:
             response = middleware(environ, params)
             if response:
                 start_response("401 Unauthorized", [('Content-Type', 'text/html')])
-                return [response.encode()]
+                return [response.encode() if isinstance(response, str) else response]
 
         method = environ['REQUEST_METHOD']
         if path in self.routes:
             route_info = self.routes[path]
             if method in route_info["methods"]:
-                response_body = route_info["func"](environ)
+                try:
+                    response_body = route_info["func"](environ)
 
-                # Handle JSON response properly
-                if isinstance(response_body, tuple):  # JSON response case
-                    status, headers, body = response_body
-                    start_response(f"{status} OK", headers + [('Set-Cookie', f'session_id={session_id}')])
+                    # Handle different types of responses properly
+                    if isinstance(response_body, tuple):
+                        # Check if it's a 2-element tuple (response, status) or 3-element tuple (status, headers, body)
+                        if len(response_body) == 2:
+                            # Format: (content, status_code)
+                            content, status_code = response_body
+                            start_response(f"{status_code} {'OK' if status_code == 200 else 'Error'}",
+                                           [('Content-Type', 'text/html'), ('Set-Cookie', f'session_id={session_id}')])
 
-                    # Ensure response_body is bytes
-                    return [body] if isinstance(body, bytes) else [body.encode()]
+                            # Ensure response is bytes
+                            if isinstance(content, str):
+                                return [content.encode()]
+                            elif isinstance(content, bytes):
+                                return [content]
+                            else:
+                                return [str(content).encode()]
 
-                # Default to HTML response
-                start_response("200 OK", [('Content-Type', 'text/html'), ('Set-Cookie', f'session_id={session_id}')])
-                return [response_body.encode()]
+                        elif len(response_body) == 3:
+                            # Format: (status_code, headers, body)
+                            status, headers, body = response_body
+                            start_response(f"{status} {'OK' if status == 200 else 'Error'}",
+                                           headers + [('Set-Cookie', f'session_id={session_id}')])
 
+                            # Ensure response is bytes
+                            if isinstance(body, str):
+                                return [body.encode()]
+                            elif isinstance(body, bytes):
+                                return [body]
+                            else:
+                                return [str(body).encode()]
+                    else:
+                        # Default to HTML response for string returns
+                        start_response("200 OK",
+                                       [('Content-Type', 'text/html'), ('Set-Cookie', f'session_id={session_id}')])
+
+                        # Ensure response is bytes
+                        if isinstance(response_body, str):
+                            return [response_body.encode()]
+                        elif isinstance(response_body, bytes):
+                            return [response_body]
+                        else:
+                            return [str(response_body).encode()]
+                except Exception as e:
+                    print(f"Error handling route {path}: {str(e)}")
+                    start_response("500 Internal Server Error", [('Content-Type', 'text/html')])
+                    return [f"500 Internal Server Error: {str(e)}".encode()]
             else:
                 response_body = self.error_handlers.get(405, lambda: "405 Method Not Allowed")()
                 start_response("405 Method Not Allowed", [('Content-Type', 'text/html')])
-                return [response_body.encode()]
+
+                # Ensure response is bytes
+                if isinstance(response_body, str):
+                    return [response_body.encode()]
+                elif isinstance(response_body, bytes):
+                    return [response_body]
+                else:
+                    return [str(response_body).encode()]
         else:
             response_body = self.error_handlers.get(404, lambda: "404 Not Found")()
             start_response("404 Not Found", [('Content-Type', 'text/html')])
-            return [response_body.encode()]
+
+            # Ensure response is bytes
+            if isinstance(response_body, str):
+                return [response_body.encode()]
+            elif isinstance(response_body, bytes):
+                return [response_body]
+            else:
+                return [str(response_body).encode()]
 
     def auth_middleware(environ, params):
         session = environ.get("SESSION", {})
