@@ -1,11 +1,11 @@
 ![Hajime 🚀](HAJIME/header.png)
 ```python
-pip install Hajime==2.0.2
+pip install Hajime==2.1
 ```
-## Overview
+## 🚀 Overview
 Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, and database interaction. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
 
-## Features
+## 📌 Features
 - **Routing**: Supports HTTP request handling with different methods.
 - **Middleware**: Custom middleware functions for request filtering.
 - **WebSockets**: Built-in WebSocket support for real-time applications.
@@ -14,7 +14,7 @@ Hajime is a lightweight Python-based web framework that provides built-in suppor
 - **Static File Serving**: Serves files from a static directory.
 - **Session Management**: Basic session handling with cookies.
 
-## Quick Start
+## ✔️ Quick Start
 Create a simple web server with Hajime:
 
 ```python
@@ -30,9 +30,9 @@ if __name__ == "__main__":
     app.launch()
 ```
 
-Run the script, and the server will start at an available port. (Basic for Hajime is 8000)
+Run the script, and the server will start at an available port. (Default for Hajime is 8000)
 
-## Routing
+## 🛣️ Routing
 Hajime provides an easy way to define routes with the `@app.route` decorator.
 
 ```python
@@ -50,7 +50,7 @@ def submit(environ):
     return json_response({"message": "Data received", "data": data})
 ```
 
-## Middleware
+## 🪛 Middleware
 Middleware functions can be registered using `app.use()` to handle request processing before passing control to the route handler.
 
 ```python
@@ -63,16 +63,39 @@ def auth_middleware(environ, params):
 app.use(auth_middleware)
 ```
 
-## WebSockets
+## 🛜 WebSockets (JavaScript Client)
 Define a WebSocket route using `@app.websocket`:
 
 ```python
 @app.websocket("/ws")
 async def websocket_handler(websocket):
     await websocket.send("Welcome to the WebSocket server!")
+    while True:
+        message = await websocket.receive()
+        await websocket.send(f"You said: {message}")
 ```
 
-## Template Rendering
+### 📄 JavaScript WebSocket Client
+```html
+<script>
+const socket = new WebSocket("ws://localhost:8765/ws");
+
+socket.onopen = () => {
+    console.log("Connected to WebSocket server");
+    socket.send("Hello, Server!");
+};
+
+socket.onmessage = (event) => {
+    console.log("Message from server:", event.data);
+};
+
+socket.onerror = (error) => {
+    console.error("WebSocket error:", error);
+};
+</script>
+```
+
+## 🌄 Template Rendering
 Hajime supports simple HTML templates with variable replacement.
 
 ```python
@@ -86,7 +109,7 @@ def greet(environ):
 <h1>Hello, {{name}}!</h1>
 ```
 
-## Database Support
+## 📅 Database Support
 Hajime includes a `Database` class to interact with PostgreSQL and SQLite.
 
 ```python
@@ -103,7 +126,7 @@ users = db.fetch_all("SELECT * FROM users")
 print(users)
 ```
 
-## Static Files
+## 📁 Static Files
 Serve static files from the `static/` directory.
 
 Access files with:
@@ -111,7 +134,7 @@ Access files with:
 http://localhost:8000/static/style.css
 ```
 
-## Session Management
+## 💻 Session Management
 Hajime supports session handling with cookies.
 
 ```python
@@ -123,13 +146,13 @@ def login(environ):
     return "Logged in!"
 ```
 
-## Running the Server
+## 🏃‍♂️ Running the Server
 Launch the HTTP and WebSocket servers:
 ```python
 app.launch(port=8000, ws_port=8765)
 ```
 
-## Error Handling
+## 🚫 Error Handling
 Custom error handlers can be defined using:
 ```python
 @app.error_handler(404)
@@ -138,3 +161,4 @@ def not_found():
 ```
 
 ![Hajime 🚀](HAJIME/footer.png)
+
