@@ -14,6 +14,15 @@ Hajime is a lightweight Python-based web framework that provides built-in suppor
 - **Static File Serving**: Serves files from a static directory.
 - **Session Management**: Basic session handling with cookies.
 
+## 📄 Contributing
+
+Contributions are always welcome!
+
+See `contributing.md` for ways to get started.
+
+Please adhere to this project's `code of conduct`.
+
+
 ## ✔️ Quick Start
 Create a simple web server with Hajime:
 
@@ -159,6 +168,13 @@ Custom error handlers can be defined using:
 def not_found():
     return "Custom 404 Page Not Found"
 ```
+
+
+## ➕ Support
+
+For support, email FCzajkowski@proton.me, or Contact through X.com: FCzajkowski
+
+--------------------------------------
 
 ![Hajime 🚀](HAJIME/footer.png)
 
