@@ -20,7 +20,7 @@ Hajime is a lightweight Python-based web framework that provides built-in suppor
 
 Contributions are always welcome!
 
-See contributing.md for ways to get started.
+See ```contributing.md``` for ways to get started.
 
 Please adhere to this project's code of conduct.
 
