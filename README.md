@@ -1,6 +1,6 @@
 ![Hajime 🚀](HAJIME/header.png)
 ```python
-pip install Hajime==2.1
+pip install Hajime==2.1.1
 ```
 ## 🚀 Overview
 Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, and database interaction. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
@@ -59,6 +59,15 @@ def submit(environ):
     return json_response({"message": "Data received", "data": data})
 ```
 
+### Redirecting
+```python
+@app.route("/")
+def submit(environ):
+    return '<h1>hello</h1>'
+@app.route("/")
+def submit(environ):
+    return app.redirect('/')
+```
 ## 🪛 Middleware
 Middleware functions can be registered using `app.use()` to handle request processing before passing control to the route handler.
 
