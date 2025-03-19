@@ -1,6 +1,6 @@
 ![Hajime 🚀](HAJIME/header.png)
 ```python
-pip install Hajime==1.0.0
+pip install Hajime
 ```
 
 ## 🚀 Overview
@@ -208,10 +208,16 @@ def not_found():
 Hajime provides utilities to handle form data in POST requests:
 
 ```python
-@app.route("/submit-form", methods=["POST"])
+@app.route('/submit-form', methods=["POST"])
 def submit_form(environ):
-    form_data = get_form_data(environ)
-    return f"Received: {form_data}"
+    form_data = environ["form"]
+    
+    # Now you can access form fields
+    name = form_data.get('name', '')
+    email = form_data.get('email', '')
+    
+    # Process the form data
+    return f"Form submitted successfully! Name: {name}, Email: {email}"
 ```
 
 ## ➕ Support
