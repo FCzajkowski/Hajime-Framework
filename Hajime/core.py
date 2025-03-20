@@ -3,6 +3,7 @@ import json, uuid, mimetypes, os, re
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.orm import sessionmaker
 
+
 def find_free_port(start_port: int = 8000) -> int:
     import socket
     """Find the next available port starting from start_port."""
@@ -12,6 +13,55 @@ def find_free_port(start_port: int = 8000) -> int:
             if s.connect_ex(('localhost', start_port)) != 0:
                 return start_port
             start_port += 1
+
+
+def get_form_data(environ):
+    """
+    Extract form data from a POST request.
+    Returns a dictionary of form field names and values.
+    """
+    try:
+        # Check if it's a form submission
+        content_type = environ.get('CONTENT_TYPE', '')
+        if 'application/x-www-form-urlencoded' in content_type:
+            # Get content length
+            try:
+                request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+            except ValueError:
+                request_body_size = 0
+
+            # Read request body
+            request_body = environ['wsgi.input'].read(request_body_size)
+            form_data = parse_qs(request_body.decode('utf-8'))
+
+            # Convert lists to single values where appropriate
+            result = {}
+            for key, value in form_data.items():
+                result[key] = value[0] if len(value) == 1 else value
+
+            return result
+        elif 'multipart/form-data' in content_type:
+            import cgi
+            form = cgi.FieldStorage(
+                fp=environ['wsgi.input'],
+                environ=environ,
+                keep_blank_values=True
+            )
+
+            # Convert to dictionary
+            result = {}
+            for field in form.keys():
+                if isinstance(form[field], list):
+                    result[field] = [item.value for item in form[field]]
+                else:
+                    result[field] = form[field].value
+
+            return result
+        return {}
+    except Exception as e:
+        print(f"Error parsing form data: {str(e)}")
+        return {}
+
 class Messages:
     def __init__(self):
         self.green = '\033[92m'
@@ -34,6 +84,7 @@ def json_response(data, status=200):
 
     return status, headers, response_body
 
+
 def get_json(environ):
     try:
         length = int(environ.get('CONTENT_LENGTH', 0))
@@ -41,6 +92,48 @@ def get_json(environ):
         return json.loads(body)
     except:
         return None
+
+
+def get_form_data(environ):
+    """Parse form data from POST requests"""
+    try:
+        if environ.get('REQUEST_METHOD') == 'POST':
+            content_type = environ.get('CONTENT_TYPE', '')
+
+            # Handle form data
+            if content_type.startswith('application/x-www-form-urlencoded'):
+                length = int(environ.get('CONTENT_LENGTH', 0))
+                body = environ['wsgi.input'].read(length).decode('utf-8')
+                return parse_qs(body)
+
+            # Handle multipart form data (file uploads)
+            elif content_type.startswith('multipart/form-data'):
+                import cgi
+                form = cgi.FieldStorage(
+                    fp=environ['wsgi.input'],
+                    environ=environ,
+                    keep_blank_values=True
+                )
+
+                result = {}
+                for key in form:
+                    if isinstance(form[key], list):
+                        result[key] = [item.value for item in form[key]]
+                    elif form[key].filename:
+                        # Handle file uploads
+                        result[key] = {
+                            'filename': form[key].filename,
+                            'value': form[key].value,
+                            'type': form[key].type
+                        }
+                    else:
+                        result[key] = form[key].value
+                return result
+        return {}
+    except Exception as e:
+        print(f"Error parsing form data: {str(e)}")
+        return {}
+
 
 class Database:
     def __init__(self, db_type, host, user, password, database, port=None):
@@ -95,7 +188,7 @@ class Database:
 
 
 class Hajime:
-    def __init__(self, database = None):
+    def __init__(self, database=None):
         self.routes = {}
         self.error_handlers = {}
         self.template_folder = "templates"
@@ -103,10 +196,15 @@ class Hajime:
         self.middlewares = []
         self.sessions = {}
         self.ws_routes = {}
-        self.templates_cache = {}  # 🔥 Store preloaded templates
+        self.templates_cache = {}  
+        self.static_cache = {} 
         if database:
             self.database = database
+        else:
+            self.database = None
         self.preload_templates()
+        self.preload_static_files()
+
     def preload_templates(self):
         """Preloads all HTML templates into memory."""
         templates_dir = os.path.join(os.getcwd(), self.template_folder)
@@ -117,11 +215,26 @@ class Hajime:
                     with open(filepath, "r", encoding="utf-8") as f:
                         self.templates_cache[file] = f.read()  # Store in memory
         print("🔥 All templates preloaded!")
+
+    def preload_static_files(self):
+        """Preloads all static assets into memory."""
+        static_dir = os.path.join(os.getcwd(), self.static_folder)
+        if os.path.exists(static_dir):
+            for root, _, files in os.walk(static_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, static_dir)
+                    with open(file_path, "rb") as f:
+                        self.static_cache[relative_path] = f.read()
+        print("📦 All static assets preloaded!")
+
     def websocket(self, path):
         """Decorator to register WebSocket routes"""
+
         def wrapper(func):
             self.ws_routes[path] = func
             return func
+
         return wrapper
 
     async def ws_handler(self, websocket, path):
@@ -135,6 +248,7 @@ class Hajime:
     def run_ws_server(self, port=8765):
         import asyncio, websockets
         """Start the WebSocket server inside a new event loop"""
+
         async def server_task():
             async with websockets.serve(self.ws_handler, "localhost", port):
                 await asyncio.Future()  # Keeps the server running
@@ -181,6 +295,7 @@ class Hajime:
         def wrapper(func):
             self.error_handlers[status_code] = func
             return func
+
         return wrapper
 
     def use(self, middleware_func):
@@ -201,15 +316,10 @@ class Hajime:
               ... use {{ key }} and {{ value }} ...
             {% endfor %}
         """
-        project_dir = os.getcwd()
-        filepath = os.path.join(project_dir, self.template_folder, filename)
-        print(f"Looking for template at: {filepath}")  # Debugging line
-
-        if not os.path.exists(filepath):
+        # Use template from cache
+        template = self.templates_cache.get(filename)
+        if not template:
             return "Template not found!"
-
-        with open(filepath, "r", encoding="utf-8") as file:
-            template = file.read()
 
         # Process simple for-loop blocks
         loop_pattern = r'{%\s*for\s+(\w+)\s*,\s*(\w+)\s+in\s+(\w+)\.items\(\)\s*%}(.*?){%\s*endfor\s*%}'
@@ -229,25 +339,18 @@ class Hajime:
                 output += iter_block
             return output
 
-        """Render templates from cache instantly"""
-        template = self.templates_cache.get(filename)
-        if not template:
-            return "Template not found!"
+        # Apply the for-loop replacements
+        template = re.sub(loop_pattern, loop_replacer, template, flags=re.DOTALL)
+
+        # Apply variable replacements
         for key, value in context.items():
             template = template.replace(f"{{{{{key}}}}}", str(value))
+
         return template
 
-    def preload_static_files(self):
-        """Preloads all static assets into memory."""
-        self.static_cache = {}
-        static_dir = os.path.join(os.getcwd(), self.static_folder)
-        if os.path.exists(static_dir):
-            for root, _, files in os.walk(static_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    with open(file_path, "rb") as f:
-                        self.static_cache[file_path] = f.read()
-        print("📦 All static assets preloaded!")
+
+
+        return status_code, headers, body
 
     def get_session(self, environ):
         """Fetches or creates a session for the user"""
@@ -266,21 +369,22 @@ class Hajime:
     def set_session(self, session_id, data):
         """Updates session data"""
         self.sessions[session_id] = data
+
     def serve_static(self, path, start_response):
         """Serve static files instantly from cache."""
         relative_path = path.replace('/static/', '', 1)
-        file_path = os.path.join(os.getcwd(), self.static_folder, relative_path)
 
-        if file_path in self.static_cache:
-            mime_type, _ = mimetypes.guess_type(file_path)
+        if relative_path in self.static_cache:
+            mime_type, _ = mimetypes.guess_type(relative_path)
             start_response("200 OK", [('Content-Type', mime_type or 'application/octet-stream')])
-            return [self.static_cache[file_path]]
+            return [self.static_cache[relative_path]]
         else:
             start_response("404 Not Found", [('Content-Type', 'text/plain')])
             return [b"404 Not Found"]
     def __call__(self, environ, start_response):
         path = environ['PATH_INFO']
         environ["json"] = get_json(environ)
+        environ["form"] = get_form_data(environ)
         query_string = environ.get('QUERY_STRING', "")
         params = parse_qs(query_string)
 
@@ -399,3 +503,21 @@ class Hajime:
         else:
             start_response("404 Not Found", [('Content-Type', 'text/plain')])
             return [b"404 Not Found"]
+    def redirect(self, location, status_code=302):
+        """Return a redirect response to the specified location"""
+        headers = [
+            ('Location', location),
+            ('Content-Type', 'text/html')
+        ]
+        body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Redirecting...</title>
+            <meta http-equiv="refresh" content="0;url={location}">
+        </head>
+        <body>
+            <p>Redirecting to <a href="{location}">{location}</a>...</p>
+        </body>
+        </html>
+        """.encode()
