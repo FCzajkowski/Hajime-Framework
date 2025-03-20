@@ -1,31 +1,31 @@
-# ![Hajime 🚀](HAJIME/header.png)
+![Hajime 🚀](HAJIME/header.png)
 ```python
 pip install Hajime
 ```
 
-## 🚀 Aperçu
-Hajime est un framework web léger basé sur Python qui fournit un support intégré pour le routage, les middlewares, la gestion des WebSockets, le templating, l'intégration de bases de données et la diffusion de fichiers statiques. Il est conçu pour être simple, flexible et facile à utiliser pour la création d'applications web et d'API.
+## 🚀 Overview
+Hajime is a lightweight Python-based web framework that provides built-in support for routing, middleware, WebSocket handling, templating, database integration, and static file serving. It is designed to be simple, flexible, and easy to use for building web applications and APIs.
 
-## 📌 Fonctionnalités
-- **Routage** : Prend en charge le traitement des requêtes HTTP avec différentes méthodes
-- **Middleware** : Fonctions middleware personnalisées pour le filtrage des requêtes
-- **WebSockets** : Support intégré des WebSockets pour les applications en temps réel
-- **Templating** : Rendu de templates simple avec remplacement de variables et boucles for
-- **Intégration de base de données** : Fonctionne avec les bases de données SQLite et PostgreSQL en utilisant SQLAlchemy
-- **Diffusion de fichiers statiques** : Sert efficacement les fichiers depuis un répertoire statique avec mise en cache
-- **Gestion des sessions** : Gestion basique des sessions avec cookies
-- **Optimisations de performance** : Préchargement des templates et des fichiers statiques
+## 📌 Features
+- **Routing**: Supports HTTP request handling with different methods
+- **Middleware**: Custom middleware functions for request filtering
+- **WebSockets**: Built-in WebSocket support for real-time applications
+- **Templating**: Simple template rendering with variable replacement and for-loops
+- **Database Integration**: Works with SQLite and PostgreSQL databases using SQLAlchemy
+- **Static File Serving**: Efficiently serves files from a static directory with caching
+- **Session Management**: Basic session handling with cookies
+- **Performance Optimizations**: Preloading of templates and static files
 
-## 📄 Contribuer
+## 📄 Contributing
 
-Les contributions sont toujours les bienvenues !
+Contributions are always welcome!
 
-Consultez ```contributing.md``` pour savoir comment commencer.
+See ```contributing.md``` for ways to get started.
 
-Veuillez respecter le code de conduite de ce projet.
+Please adhere to this project's code of conduct.
 
-## ✔️ Démarrage rapide
-Créez un serveur web simple avec Hajime :
+## ✔️ Quick Start
+Create a simple web server with Hajime:
 
 ```python
 from Hajime import *
@@ -40,10 +40,10 @@ if __name__ == "__main__":
     app.launch()
 ```
 
-Exécutez le script, et le serveur démarrera sur un port disponible. (Par défaut pour Hajime, c'est le port 8000)
+Run the script, and the server will start at an available port. (Default for Hajime is 8000)
 
-## 🛣️ Routage
-Hajime fournit un moyen simple de définir des routes avec le décorateur `@app.route`.
+## 🛣️ Routing
+Hajime provides an easy way to define routes with the `@app.route` decorator.
 
 ```python
 @app.route("/hello", methods=["GET"])
@@ -51,7 +51,7 @@ def hello(environ):
     return "Hello from Hajime!"
 ```
 
-Les routes peuvent gérer différentes méthodes HTTP :
+Routes can handle different HTTP methods:
 
 ```python
 @app.route("/submit", methods=["POST"])
@@ -60,7 +60,7 @@ def submit(environ):
     return json_response({"message": "Data received", "data": data})
 ```
 
-### Redirection
+### Redirecting
 ```python
 @app.route("/")
 def home(environ):
@@ -72,7 +72,7 @@ def redirect_home(environ):
 ```
 
 ## 🪛 Middleware
-Les fonctions middleware peuvent être enregistrées en utilisant `app.use()` pour traiter les requêtes avant de passer le contrôle au gestionnaire de route.
+Middleware functions can be registered using `app.use()` to handle request processing before passing control to the route handler.
 
 ```python
 def auth_middleware(environ, params):
@@ -85,7 +85,7 @@ app.use(auth_middleware)
 ```
 
 ## 🛜 WebSockets
-Définissez une route WebSocket en utilisant `@app.websocket` :
+Define a WebSocket route using `@app.websocket`:
 
 ```python
 @app.websocket("/ws")
@@ -96,7 +96,7 @@ async def websocket_handler(websocket):
         await websocket.send(f"You said: {message}")
 ```
 
-### 📄 Client WebSocket JavaScript
+### 📄 JavaScript WebSocket Client
 ```html
 <script>
 const socket = new WebSocket("ws://localhost:8765/ws");
@@ -116,8 +116,8 @@ socket.onerror = (error) => {
 </script>
 ```
 
-## 🌄 Rendu de templates
-Hajime prend en charge les templates HTML avec remplacement de variables et boucles for. Les templates sont automatiquement préchargés pour de meilleures performances.
+## 🌄 Template Rendering
+Hajime supports HTML templates with variable replacement and for-loops. Templates are automatically preloaded for better performance.
 
 ```python
 @app.route("/greet")
@@ -128,29 +128,29 @@ def greet(environ):
 ### greet.html
 ```html
 <h1>Hello, {{name}}!</h1>
-<!-- Exemple de boucle for -->
+<!-- For-loop example -->
 {% for key, value in items.items() %}
     <p>{{key}}: {{value}}</p>
 {% endfor %}
 ```
 
-## 📅 Support de base de données
-Hajime inclut une classe Database qui utilise SQLAlchemy pour interagir avec PostgreSQL et SQLite.
+## 📅 Database Support
+Hajime includes a Database class that leverages SQLAlchemy to interact with PostgreSQL and SQLite.
 
 ```python
 from Hajime import Database
 
-# Connexion à une base de données SQLite
+# Connect to SQLite database
 db = Database("sqlite", host="", user="", password="", database="data.db")
 
-# Ou connexion à PostgreSQL
+# Or connect to PostgreSQL
 # db = Database("postgresql", host="localhost", user="user", password="pass", database="mydb", port=5432)
 
-# Exécuter des requêtes
+# Execute queries
 db.execute_query("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)")
 ```
 
-Récupération de données :
+Fetching data:
 ```python
 users = db.fetch_all("SELECT * FROM users")
 print(users)
@@ -159,25 +159,25 @@ user = db.fetch_one("SELECT * FROM users WHERE id = 1")
 print(user)
 ```
 
-Utilitaires de base de données :
+Database utilities:
 ```python
-# Obtenir la liste des tables
+# Get list of tables
 tables = db.get_tables()
 
-# Obtenir les données d'une table spécifique
+# Get data from a specific table
 users_data = db.get_table_data("users")
 ```
 
-## 📁 Fichiers statiques
-Hajime sert les fichiers statiques depuis le répertoire `static/` et les précharge pour de meilleures performances.
+## 📁 Static Files
+Hajime serves static files from the `static/` directory and preloads them for better performance.
 
-Accédez aux fichiers avec :
+Access files with:
 ```
 http://localhost:8000/static/style.css
 ```
 
-## 💻 Gestion des sessions
-Hajime prend en charge la gestion des sessions avec des cookies.
+## 💻 Session Management
+Hajime supports session handling with cookies.
 
 ```python
 @app.route("/login", methods=["POST"])
@@ -188,42 +188,43 @@ def login(environ):
     return "Logged in!"
 ```
 
-## 🏃‍♂️ Lancement du serveur
-Lancez les serveurs HTTP et WebSocket :
+## 🏃‍♂️ Running the Server
+Launch the HTTP and WebSocket servers:
 ```python
 app.launch(port=8000, ws_port=8765)
 ```
 
-Le framework trouve automatiquement des ports disponibles si ceux spécifiés sont déjà utilisés.
+The framework automatically finds available ports if the specified ones are in use.
 
-## 🚫 Gestion des erreurs
-Des gestionnaires d'erreurs personnalisés peuvent être définis en utilisant :
+## 🚫 Error Handling
+Custom error handlers can be defined using:
 ```python
 @app.error_handler(404)
 def not_found():
     return "Custom 404 Page Not Found"
 ```
 
-## 📝 Traitement des données de formulaire
-Hajime fournit des utilitaires pour gérer les données de formulaire dans les requêtes POST :
+## 📝 Form Data Handling
+Hajime provides utilities to handle form data in POST requests:
 
 ```python
 @app.route('/submit-form', methods=["POST"])
 def submit_form(environ):
     form_data = environ["form"]
     
-    # Vous pouvez maintenant accéder aux champs du formulaire
+    # Now you can access form fields
     name = form_data.get('name', '')
     email = form_data.get('email', '')
     
-    # Traiter les données du formulaire
+    # Process the form data
     return f"Form submitted successfully! Name: {name}, Email: {email}"
 ```
 
 ## ➕ Support
 
-Pour obtenir de l'aide, envoyez un email à FCzajkowski@proton.me, ou contactez via X.com : FCzajkowski
+For support, email FCzajkowski@proton.me, or Contact through X.com: FCzajkowski
 
 ---
 
-![Hajime 🚀](HAJIME/footer.png)****
+![Hajime 🚀](HAJIME/footer.png)
+
