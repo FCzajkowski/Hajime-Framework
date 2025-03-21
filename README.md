@@ -1,4 +1,4 @@
-![Hajime 🚀](../images/header.png)
+![Hajime 🚀](/images/header.png)
 ```python
 pip install Hajime
 ```
@@ -226,5 +226,5 @@ For support, email FCzajkowski@proton.me, or Contact through X.com: FCzajkowski
 
 ---
 
-![Hajime 🚀](../images/footer.png)
+![Hajime 🚀](/images/footer.png)
 
