@@ -224,7 +224,9 @@ def submit_form(environ):
 
 ## ➕ Support
 
-For support, email FCzajkowski@proton.me, or Contact through X.com: FCzajkowski
+For support, 
+#### email FCzajkowski@proton.me, or Contact through X.com: 
+### @FCzajkowski
 
 ---
 
