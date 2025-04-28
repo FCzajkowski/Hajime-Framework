@@ -26,6 +26,10 @@ See ```contributing.md``` for ways to get started.
 
 Please adhere to this project's code of conduct.
 
+## 📄 File Structure
+in Hajime, main html file should be in *templates* folder, and css & js files should be in *static* folder
+
+
 ## ✔️ Quick Start
 Create a simple web server with Hajime:
 
