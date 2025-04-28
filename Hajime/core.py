@@ -1,7 +1,3 @@
-"""
-DEV NOTE 28/04/25 - ADD JAVASCRIPT FILE'S SUPPORT. as <script> block javascript works, but as script.js file it does not!
-"""
-
 from urllib.parse import parse_qs
 import json, uuid, mimetypes, os, re
 from sqlalchemy import create_engine, text, MetaData
@@ -231,6 +227,9 @@ class Hajime:
                     with open(file_path, "rb") as f:
                         self.static_cache[relative_path] = f.read()
         print("📦 All static assets preloaded!")
+        # Add a debug log to check for JS files
+        js_files = [f for f in self.static_cache.keys() if f.endswith('.js')]
+        print(f"🚀 Loaded {len(js_files)} JavaScript files: {', '.join(js_files)}")
 
     def websocket(self, path):
         """Decorator to register WebSocket routes"""
@@ -314,17 +313,15 @@ class Hajime:
         return wrapper
 
     def template(self, filename, **context):
-        """Loads an HTML file and processes simple templating constructs.
-        Supports variable replacement and simple for-loops in the form:
-            {% for key, value in dictname.items() %}
-              ... use {{ key }} and {{ value }} ...
-            {% endfor %}
-        """
+        """Loads an HTML file and processes simple templating constructs."""
         # Use template from cache
         template = self.templates_cache.get(filename)
         if not template:
             return "Template not found!"
-
+        
+        # Add js_include function to context
+        context['js_include'] = lambda js_file: f'<script src="/static/{js_file}"></script>'
+        
         # Process simple for-loop blocks
         loop_pattern = r'{%\s*for\s+(\w+)\s*,\s*(\w+)\s+in\s+(\w+)\.items\(\)\s*%}(.*?){%\s*endfor\s*%}'
 
@@ -346,11 +343,18 @@ class Hajime:
         # Apply the for-loop replacements
         template = re.sub(loop_pattern, loop_replacer, template, flags=re.DOTALL)
 
-        # Apply variable replacements
         for key, value in context.items():
+            if callable(value):
+                # Skip function objects, we'll handle them separately
+                continue
             template = template.replace(f"{{{{{key}}}}}", str(value))
+        
+        # Process function calls like {{ js_include('script.js') }}
+        function_pattern = r'{{\s*js_include\([\'"](.+?)[\'"]\)\s*}}'
+        template = re.sub(function_pattern, lambda m: self.include_js(m.group(1)), template)
 
         return template
+
 
 
 
@@ -488,25 +492,22 @@ class Hajime:
         return None
 
     def serve_static(self, path, start_response):
-        """Serve static files from the static/ directory"""
-        # Get the current working directory (project directory)
-        project_dir = os.getcwd()
-
-        # Strip the '/static/' prefix and join with project directory and static folder
+        """Serve static files instantly from cache."""
         relative_path = path.replace('/static/', '', 1)
-        file_path = os.path.join(project_dir, self.static_folder, relative_path)
 
-        print(f"Serving static file: {file_path}")
-
-        if os.path.exists(file_path):
-            mime_type, _ = mimetypes.guess_type(file_path)
-            with open(file_path, "rb") as f:
-                content = f.read()
+        if relative_path in self.static_cache:
+            mime_type, _ = mimetypes.guess_type(relative_path)
+            # Ensure JS files have proper MIME type
+            if relative_path.endswith('.js'):
+                mime_type = 'application/javascript'
             start_response("200 OK", [('Content-Type', mime_type or 'application/octet-stream')])
-            return [content]
+            return [self.static_cache[relative_path]]
         else:
             start_response("404 Not Found", [('Content-Type', 'text/plain')])
             return [b"404 Not Found"]
+    def include_js(self, js_file):
+        """Helper to generate script tag for JavaScript files"""
+        return f'<script src="/static/{js_file}"></script>'
     def redirect(self, location, status_code=302):
         """Return a redirect response to the specified location"""
         headers = [
@@ -525,3 +526,4 @@ class Hajime:
         </body>
         </html>
         """.encode()
+
