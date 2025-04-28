@@ -1,3 +1,7 @@
+"""
+DEV NOTE 28/04/25 - ADD JAVASCRIPT FILE'S SUPPORT
+"""
+
 from urllib.parse import parse_qs
 import json, uuid, mimetypes, os, re
 from sqlalchemy import create_engine, text, MetaData
