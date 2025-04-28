@@ -1,5 +1,5 @@
 """
-DEV NOTE 28/04/25 - ADD JAVASCRIPT FILE'S SUPPORT
+DEV NOTE 28/04/25 - ADD JAVASCRIPT FILE'S SUPPORT. as <script> block javascript works, but as script.js file it does not!
 """
 
 from urllib.parse import parse_qs
