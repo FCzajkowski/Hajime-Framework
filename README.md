@@ -1,6 +1,6 @@
 ![Hajime 🚀](/images/header.png)
 ```python
-pip install Hajime
+pip install Hajime==1.1
 ```
 ### https://pypi.org/project/Hajime/
 
