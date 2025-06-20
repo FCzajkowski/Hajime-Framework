@@ -1,4 +1,7 @@
 ![Hajime 🚀](/images/header.png)
+
+#NOT CONTINUED 
+
 ```python
 pip install Hajime==2.2
 ```
