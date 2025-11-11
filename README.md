@@ -3,7 +3,7 @@
 #NOT CONTINUED 
 
 ```python
-pip install Hajime==2.2
+pip install Hajime
 ```
 ### https://pypi.org/project/Hajime/
 
@@ -238,4 +238,5 @@ For support,
 ---
 
 ![Hajime 🚀](/images/footer.png)
+
 
