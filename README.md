@@ -1,6 +1,5 @@
 ![Hajime 🚀](/images/header.png)
 
-#NOT CONTINUED 
 
 ```python
 pip install Hajime
@@ -237,6 +236,7 @@ For support,
 ---
 
 ![Hajime 🚀](/images/footer.png)
+
 
 
 
